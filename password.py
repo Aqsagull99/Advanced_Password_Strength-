@@ -3,9 +3,44 @@ import re
 import secrets
 import string
 import math
+import smtplib
+from email.message import EmailMessage
+import random
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Get SMTP credentials from environment variables
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 2525))
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+USER_EMAIL = os.getenv("USER_EMAIL")  # Replace with actual user email
+OTP = ""
 
 # Common passwords list for strict security
 COMMON_PASSWORDS = {"password", "123456", "qwerty", "admin", "letmein", "abc123", "iloveyou", "monkey"}
+
+# Function to send OTP to email
+def send_otp(email):
+    global OTP
+    OTP = str(random.randint(100000, 999999))
+    msg = EmailMessage()
+    msg.set_content(f"Your OTP for verification is: {OTP}")
+    msg["Subject"] = "Password Verification OTP"
+    msg["From"] = "noreply@example.com"
+    msg["To"] = email
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        return False
 
 # Function to calculate password entropy
 def calculate_entropy(password):
@@ -37,7 +72,7 @@ def check_password_strength(password):
         feedback.append("❌ Add at least one number (0-9).")
     
     # Special Character Check (1 point)
-    if re.search(r"[!@#$%^&*()_+={}:;'<>,.?/\"\\|~`-]", password):
+    if re.search(r"[!@#$%^&*()_+={}:;'<>?,./\"\\|~`-]", password):
         score += 1
     else:
         feedback.append("❌ Include at least one special character (!@#$%^&*...).")
@@ -69,14 +104,14 @@ def check_password_strength(password):
 
 # Function to generate a strong password
 def generate_strong_password(length=16):
-    characters = string.ascii_letters + string.digits + "!@#$%^&*()_+={}:;'<>,.?/\"\\|~`-"
+    characters = string.ascii_letters + string.digits + "!@#$%^&*()_+={}:;'<>?,./\"\\|~`-"
     password = ''.join(secrets.choice(characters) for _ in range(length))
     return password
 
 # Streamlit App
 def main():
-    st.title("🔐 Advanced Password Strength Meter")
-    st.write("Check the strength of your password with enhanced security checks.")
+    st.title("🔐 Advanced Password Manager with 2FA")
+    st.write("Check the strength of your password with enhanced security checks and two-step verification.")
 
     # Input field for password
     password = st.text_input("Enter your password:", type="password")
@@ -110,6 +145,27 @@ def main():
         strong_password = generate_strong_password()
         st.code(strong_password)
 
+    # Two-Step Verification Section
+    st.markdown("---")
+    st.subheader("🔑 Two-Step Verification (2FA)")
+    if st.button("Send OTP to Email"):
+        if send_otp(USER_EMAIL):
+            st.success("OTP sent successfully! Check your email.")
+        else:
+            st.error("Failed to send OTP. Please try again.")
+    otp_input = st.text_input("Enter OTP received on your email:")
+    if otp_input and otp_input == OTP:
+        st.success("✅ OTP Verified Successfully!")
+    elif otp_input:
+        st.error("❌ Invalid OTP! Try again.")
+
 # Run the app
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
