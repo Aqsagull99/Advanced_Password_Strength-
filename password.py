@@ -18,15 +18,14 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", 2525))
 SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 USER_EMAIL = os.getenv("USER_EMAIL")  # Replace with actual user email
-OTP = ""
 
 # Common passwords list for strict security
 COMMON_PASSWORDS = {"password", "123456", "qwerty", "admin", "letmein", "abc123", "iloveyou", "monkey"}
 
 # Function to send OTP to email
 def send_otp(email):
-    global OTP
-    OTP = str(random.randint(100000, 999999))
+    OTP = str(random.randint(100000, 999999))  # Generate OTP
+    st.session_state["OTP"] = OTP  # Save OTP in session state
     msg = EmailMessage()
     msg.set_content(f"Your OTP for verification is: {OTP}")
     msg["Subject"] = "Password Verification OTP"
@@ -153,18 +152,18 @@ def main():
             st.success("OTP sent successfully! Check your email.")
         else:
             st.error("Failed to send OTP. Please try again.")
+    
     otp_input = st.text_input("Enter OTP received on your email:")
-    if otp_input and otp_input == OTP:
-        st.success("✅ OTP Verified Successfully!")
-    elif otp_input:
-        st.error("❌ Invalid OTP! Try again.")
+    if otp_input and "OTP" in st.session_state:
+        if otp_input == st.session_state["OTP"]:
+            st.success("✅ OTP Verified Successfully!")
+            del st.session_state["OTP"]  # OTP remove after verification
+        else:
+            st.error("❌ Invalid OTP! Try again.")
 
 # Run the app
 if __name__ == "__main__":
     main()
-
-
-
 
 
 
